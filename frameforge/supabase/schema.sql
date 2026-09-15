@@ -1,0 +1,10 @@
+create extension if not exists "pgcrypto";
+create table if not exists public.projects (id uuid primary key default gen_random_uuid(), title text not null, category text default 'Cinematic', description text, video_url text, thumbnail_url text, published boolean default false, sort_order integer default 0, created_at timestamptz default now());
+create table if not exists public.inquiries (id uuid primary key default gen_random_uuid(), name text not null, email text not null, project_type text, message text not null, created_at timestamptz default now());
+alter table public.projects enable row level security; alter table public.inquiries enable row level security;
+create policy "Public can read published projects" on public.projects for select using (published = true);
+create policy "Authenticated admins manage projects" on public.projects for all to authenticated using (true) with check (true);
+create policy "Service role manages inquiries" on public.inquiries for all to service_role using (true) with check (true);
+insert into storage.buckets (id,name,public) values ('portfolio','portfolio',true) on conflict (id) do nothing;
+create policy "Public portfolio files" on storage.objects for select using (bucket_id='portfolio');
+create policy "Authenticated upload portfolio files" on storage.objects for insert to authenticated with check (bucket_id='portfolio');
